@@ -1,0 +1,12 @@
+.total-price {
+  background: #bf0;
+  color: #111 !important;
+  outline: 2px solid;
+  padding: 1px 4px;
+  margin-left: 5px;
+  font-size: 20px !important;
+  font-weight: 400 !important;
+}
+.s-item__detail {
+  overflow: visible !important; /* in square galleries don't chop off the edge of our total-price */
+}
