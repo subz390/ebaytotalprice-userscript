@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         ebaytotalprice-userscript
 // @namespace    https://github.com/subz390
-// @version      2.0.0.201218183259
-// @description  Add the total eBay auction price + shipping = total in the auction listing
+// @version      2.0.2.201225055452
+// @description  Add the total eBay auction price including postage in the auction listing
 // @author       SubZ390
 // @license      MIT
 // @run-at       document-idle
@@ -28,23 +28,6 @@ function styleInject(style, className = undefined) {
   return el
 }
 
-function dlh(pattern, regexFlags = 'i') {
-  try {
-    if (realTypeOf(pattern) == 'regexp') {
-      return document.location.href.search(pattern) != -1 ? true : false
-    }
-    else if (realTypeOf(pattern) == 'string') {
-      return document.location.href.search(RegExp(pattern, regexFlags)) != -1 ? true : false
-    }
-    else {
-      return null
-    }
-  }
-  catch (error) {
-    console.error(error);
-  }
-}
-
 function findMatch(string, regex, index) {
   if (string === null) return null
   index = index || 1;
@@ -52,9 +35,10 @@ function findMatch(string, regex, index) {
   return (m) ? (index=='all' ? m : (m[index] ? m[index] : m[0])) : null
 }
 
-function getNode(node, debug = undefined, scope = document) {
+function getNode(node = '', debug = undefined, scope = document) {
   try {
     if (typeof node == 'string') {
+      if (node == '') {return null}
       if (typeof scope == 'string') {
         const tempScope = document.querySelector(scope);
         if (tempScope == null) {
@@ -167,7 +151,6 @@ function qs({selector = null, scope = document, array = false, all = false, cont
         if (contains !== null) {
           let tempArray = [];
           qsNodeList.forEach((element) => {
-            console.log('element.textContent', element, element.textContent);
             if (element.textContent.search(contains) !== -1) {
               tempArray.push(element);
             }
@@ -289,33 +272,51 @@ function processItemListing({listItemsSelector, itemPriceElementSelector, conver
     }
   }
 }
-try {
-  const itemPriceElementTemplate = '<span class="total-price">{shippingCurrencySymbol}{totalPrice}</span>';
-  if (dlh('\\/(b|str)\\/')) {
-    processListGallery({
-      listItemsSelector: '.s-item',
+const itemPriceElementTemplate = '<span class="total-price">{shippingCurrencySymbol}{totalPrice}</span>';
+const options = {
+  search: {
+    identifierSelector: ['#mainContent ul.srp-results', '#mainContent ul.b-list__items_nofooter'],
+    process: () => processListGallery({
+      listItemsSelector: '#mainContent li.s-item',
       itemPriceElementSelector: '.s-item__price',
       itemShippingElementSelector: '.s-item__shipping',
       itemPriceElementTemplate: itemPriceElementTemplate
-    });
-  }
-  else if (dlh('\\/sch\\/')) {
-    processListGallery({
+    })
+  },
+  sch: {
+    identifierSelector: ['#mainContent ul#ListViewInner'],
+    process: () => processListGallery({
       listItemsSelector: '#mainContent li',
       itemPriceElementSelector: '.lvprice span',
       itemShippingElementSelector: '.lvshipping span.fee',
       itemPriceElementTemplate: itemPriceElementTemplate
-    });
-  }
-  else if (dlh('\\/itm\\/')) {
-    processItemListing({
+    })
+  },
+  itm: {
+    identifierSelector: ['#mainContent form[name="viactiondetails"]'],
+    process: () => processItemListing({
       listItemsSelector: '#mainContent',
       itemPriceElementSelector: '#prcIsum_bidPrice',
       convertPriceElementSelector: '#prcIsumConv',
       itemShippingElementSelector: '#fshippingCost',
       convertShippingElementSelector: '#convetedPriceId',
       itemPriceElementTemplate: itemPriceElementTemplate
-    });
+    })
   }
+};
+function identifyMethod(option, value) {
+  for (const [option, value] of Object.entries(options)) {
+    for (let index = 0; index < value.identifierSelector.length; index++) {
+      const selector = value.identifierSelector[index];
+      const identifierNode = getNode(selector);
+      if (identifierNode !== null) {
+        value.process();
+        return
+      }
+    }
+  }
+}
+try {
+  identifyMethod();
 }
 catch (error) {console.error(error);}
