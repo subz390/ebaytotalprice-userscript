@@ -1,8 +1,9 @@
-import {dlh, findMatch, qs, sprintf, styleInject} from '@subz390/jsutils'
+import {findMatch, qs, getNode, sprintf, styleInject} from '@subz390/jsutils'
 import stylesheet from './style.css'
 styleInject(stylesheet)
 
 function processListGallery({listItemsSelector, itemPriceElementSelector, itemPriceElementTemplate = null, itemShippingElementSelector, itemShippingElementTemplate = null}) {
+  // console.log('listItemsSelector', listItemsSelector)
   const listItems = qs({selector: listItemsSelector, all: true, array: true})
   // console.log('listItems', listItems)
 
@@ -89,32 +90,31 @@ function processItemListing({listItemsSelector, itemPriceElementSelector, conver
   }
 }
 
+// total price element inserted into the page
+const itemPriceElementTemplate = '<span class="total-price">{shippingCurrencySymbol}{totalPrice}</span>'
 
-try {
-  // total price element inserted into the page
-  const itemPriceElementTemplate = '<span class="total-price">{shippingCurrencySymbol}{totalPrice}</span>'
-
-  // New Gallery Listings
-  if (dlh('\\/(b|str)\\/')) {
-    processListGallery({
-      listItemsSelector: '.s-item',
+const options = {
+  search: {
+    identifierSelector: ['#mainContent ul.srp-results', '#mainContent ul.b-list__items_nofooter'],
+    process: () => processListGallery({
+      listItemsSelector: '#mainContent li.s-item',
       itemPriceElementSelector: '.s-item__price',
       itemShippingElementSelector: '.s-item__shipping',
       itemPriceElementTemplate: itemPriceElementTemplate
     })
-  }
-  // Original style Gallery Listings
-  else if (dlh('\\/sch\\/')) {
-    processListGallery({
+  },
+  sch: {
+    identifierSelector: ['#mainContent ul#ListViewInner'],
+    process: () => processListGallery({
       listItemsSelector: '#mainContent li',
       itemPriceElementSelector: '.lvprice span',
       itemShippingElementSelector: '.lvshipping span.fee',
       itemPriceElementTemplate: itemPriceElementTemplate
     })
-  }
-  // Auction item pages
-  else if (dlh('\\/itm\\/')) {
-    processItemListing({
+  },
+  itm: {
+    identifierSelector: ['#mainContent form[name="viactiondetails"]'],
+    process: () => processItemListing({
       listItemsSelector: '#mainContent',
       itemPriceElementSelector: '#prcIsum_bidPrice',
       convertPriceElementSelector: '#prcIsumConv',
@@ -123,5 +123,24 @@ try {
       itemPriceElementTemplate: itemPriceElementTemplate
     })
   }
+}
+
+function identifyMethod(option, value) {
+  for (const [option, value] of Object.entries(options)) {
+    // console.log('option: value', option, value)
+    for (let index = 0; index < value.identifierSelector.length; index++) {
+      const selector = value.identifierSelector[index]
+      const identifierNode = getNode(selector)
+      // console.log('identifierNode', option, identifierNode)
+      if (identifierNode !== null) {
+        value.process()
+        return
+      }
+    }
+  }
+}
+
+try {
+  identifyMethod()
 }
 catch (error) {console.error(error)}
