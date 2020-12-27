@@ -13,7 +13,7 @@
 * [ebaytotalprice-userscript.user.js](https://github.com/subz390/ebaytotalprice-userscript/raw/master/userscripts/ebaytotalprice-userscript.user.js)
 * [ebaytotalprice-userscript-min.user.js](https://github.com/subz390/ebaytotalprice-userscript/raw/master/userscripts/ebaytotalprice-userscript-min.user.js)
 * [Greasy Fork](https://greasyfork.org/en/scripts/8630-ebay-total-auction-price)
-* [jsDelivr CDN](https://cdn.jsdelivr.net/gh/subz390/ebaytotalprice-userscript/userscripts/)
+* [![](https://data.jsdelivr.com/v1/package/gh/subz390/ebaytotalprice-userscript/badge)](https://www.jsdelivr.com/package/gh/subz390/ebaytotalprice-userscript)
 * The `userscripts` folder contains both minified and regular bundles of the current stable release. The minified version offers a slight performance improvement over the regular, else they're functionally identical.
 * In case you didn't already know, you can install userscripts directly from the GitHub Raw view of the userscript file, [view the script here](https://github.com/subz390/ebaytotalprice-userscript/blob/master/userscripts/ebaytotalprice-userscript.user.js) and click on the `Raw` button.
 
