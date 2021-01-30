@@ -1,4 +1,5 @@
 import * as jsutils from '@subz390/jsutils'
+import {globals} from './library/globals.js'
 import {processMethod} from './library/processMethod.js'
 import {processItemListing} from './library/processItemListing.js'
 import {processListGallery} from './library/processListGallery.js'
@@ -7,9 +8,6 @@ import stylesheet from './style.css'
 jsutils.styleInject(stylesheet)
 
 
-// total price element inserted into the page
-const itemPriceElementTemplate = '<span class="total-price">{shippingCurrencySymbol}{totalPrice}</span>'
-
 processMethod({
   search: {
     identifierSelector: ['#mainContent ul.srp-results', '#mainContent ul.b-list__items_nofooter'],
@@ -17,7 +15,7 @@ processMethod({
       listItemsSelector: '#mainContent li.s-item',
       itemPriceElementSelector: '.s-item__price',
       itemShippingElementSelector: '.s-item__shipping',
-      itemPriceElementTemplate: itemPriceElementTemplate
+      itemPriceElementTemplate: globals.itemPriceElementTemplate
     })
   },
   sch: {
@@ -26,7 +24,7 @@ processMethod({
       listItemsSelector: '#mainContent li',
       itemPriceElementSelector: '.lvprice span',
       itemShippingElementSelector: '.lvshipping span.fee',
-      itemPriceElementTemplate: itemPriceElementTemplate
+      itemPriceElementTemplate: globals.itemPriceElementTemplate
     })
   },
   itm: {
@@ -37,7 +35,7 @@ processMethod({
       convertPriceElementSelector: '#prcIsumConv',
       itemShippingElementSelector: '#fshippingCost',
       convertShippingElementSelector: '#convetedPriceId',
-      itemPriceElementTemplate: itemPriceElementTemplate
+      itemPriceElementTemplate: globals.itemPriceElementTemplate
     })
   }
 })

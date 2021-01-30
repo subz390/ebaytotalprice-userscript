@@ -1,4 +1,5 @@
 import * as jsutils from '@subz390/jsutils'
+import {globals} from './globals.js'
 
 /**
  * @name getValue
@@ -11,7 +12,7 @@ import * as jsutils from '@subz390/jsutils'
  */
 export function getValue(element) {
   try {
-    let value = jsutils.findMatch(element.textContent.trim(), /((\d+[,\.])+\d+)/)
+    let value = jsutils.findMatch(element.textContent.trim(), globals.priceMatchRegExp)
     value = value.replace(/[,\.]/g, '')
     value = parseFloat(value)
     return value

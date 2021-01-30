@@ -1,5 +1,7 @@
 import * as jsutils from '@subz390/jsutils'
 import {getValue} from './getValue.js'
+import {globals} from './globals.js'
+
 
 export function processListGallery({listItemsSelector, itemPriceElementSelector, itemPriceElementTemplate = null, itemShippingElementSelector, itemShippingElementTemplate = null}) {
   // console.log('listItemsSelector', listItemsSelector)
@@ -15,22 +17,21 @@ export function processListGallery({listItemsSelector, itemPriceElementSelector,
       // console.log('itemShippingElement', itemShippingElement)
 
       if (itemPriceElement && itemShippingElement) {
-        const priceCurrencySymbol = jsutils.findMatch(itemPriceElement.textContent.trim(), /(\$|£|EUR)/)
+        const priceCurrencySymbol = jsutils.findMatch(itemPriceElement.textContent.trim(), globals.currencySymbolsRegExp)
         // console.log('priceCurrencySymbol', priceCurrencySymbol)
 
-        const shippingCurrencySymbol = jsutils.findMatch(itemShippingElement.textContent.trim(), /(\$|£|EUR)/)
+        const shippingCurrencySymbol = jsutils.findMatch(itemShippingElement.textContent.trim(), globals.currencySymbolsRegExp)
         // console.log('shippingCurrencySymbol', shippingCurrencySymbol)
         // console.log('shippingCurrencySymbol === priceCurrencySymbol', shippingCurrencySymbol, priceCurrencySymbol, shippingCurrencySymbol === priceCurrencySymbol)
 
         if (shippingCurrencySymbol && (shippingCurrencySymbol === priceCurrencySymbol)) {
           const totalPrice = ((getValue(itemPriceElement) + getValue(itemShippingElement)) / 100).toFixed(2)
 
-          // template substitution properties {itemShippingAmount} {shippingCurrencySymbol} {totalPrice}
           const HTML = jsutils.sprintf(
             itemShippingElementTemplate || itemPriceElementTemplate, {
               itemPrice: itemPriceElement.textContent.trim(),
               itemShippingAmount: itemShippingElement.textContent.trim(),
-              shippingCurrencySymbol: shippingCurrencySymbol,
+              currencySymbol: shippingCurrencySymbol,
               totalPrice: totalPrice})
 
           if (itemPriceElementTemplate) {

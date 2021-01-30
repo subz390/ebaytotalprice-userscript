@@ -1,5 +1,6 @@
 import * as jsutils from '@subz390/jsutils'
 import {getValue} from './getValue.js'
+import {globals} from './globals.js'
 
 export function processItemListing({listItemsSelector, itemPriceElementSelector, convertPriceElementSelector, itemPriceElementTemplate = null, itemShippingElementSelector, convertShippingElementSelector, itemShippingElementTemplate = null}) {
   const content = jsutils.qs({selector: listItemsSelector})
@@ -8,36 +9,35 @@ export function processItemListing({listItemsSelector, itemPriceElementSelector,
   if (content) {
     // when viewing international listings in foreign currency eBay provide an approximate conversion into local currency
     // so search for the approximate conversion element first
-    const priceElement = jsutils.qs({selector: convertPriceElementSelector, scope: content}) || jsutils.qs({selector: itemPriceElementSelector, scope: content})
-    // console.log('priceElement', priceElement)
+    const itemPriceElement = jsutils.qs({selector: convertPriceElementSelector, scope: content}) || jsutils.qs({selector: itemPriceElementSelector, scope: content})
+    // console.log('itemPriceElement', itemPriceElement)
 
-    const shippingElement = jsutils.qs({selector: convertShippingElementSelector, scope: content, contains: /\d/}) || jsutils.qs({selector: itemShippingElementSelector, scope: content, contains: /\d/})
-    // console.log('shippingElement', shippingElement)
+    const itemShippingElement = jsutils.qs({selector: convertShippingElementSelector, scope: content, contains: /\d/}) || jsutils.qs({selector: itemShippingElementSelector, scope: content, contains: /\d/})
+    // console.log('itemShippingElement', itemShippingElement)
 
-    if (priceElement && shippingElement) {
-      const priceCurrencySymbol = jsutils.findMatch(priceElement.textContent.trim(), /([^\d ]+) ?\d+\.\d+/)
+    if (itemPriceElement && itemShippingElement) {
+      const priceCurrencySymbol = jsutils.findMatch(itemPriceElement.textContent.trim(), globals.priceMatchRegExp)
       // console.log('priceCurrencySymbol', priceCurrencySymbol)
 
-      const shippingCurrencySymbol = jsutils.findMatch(shippingElement.textContent.trim(), /([^\d ]+) ?\d+\.\d+/)
+      const shippingCurrencySymbol = jsutils.findMatch(itemShippingElement.textContent.trim(), globals.priceMatchRegExp)
       // console.log('shippingCurrencySymbol', shippingCurrencySymbol)
       // console.log('shippingCurrencySymbol === priceCurrencySymbol', shippingCurrencySymbol, priceCurrencySymbol, shippingCurrencySymbol === priceCurrencySymbol)
 
       if (shippingCurrencySymbol && (shippingCurrencySymbol === priceCurrencySymbol)) {
         const totalPrice = ((getValue(itemPriceElement) + getValue(itemShippingElement)) / 100).toFixed(2)
 
-        // template substitution properties {itemPrice} {itemShippingAmount} {shippingCurrencySymbol} {totalPrice}
         const HTML = jsutils.sprintf(
           itemShippingElementTemplate || itemPriceElementTemplate, {
-            itemPrice: priceElement.textContent.trim(),
-            itemShippingAmount: shippingElement.textContent.trim(),
-            shippingCurrencySymbol: shippingCurrencySymbol,
+            itemPrice: itemPriceElement.textContent.trim(),
+            itemShippingAmount: itemShippingElement.textContent.trim(),
+            currencySymbol: shippingCurrencySymbol,
             totalPrice: totalPrice})
 
         if (itemPriceElementTemplate) {
-          priceElement.insertAdjacentHTML('afterend', HTML)
+          itemPriceElement.insertAdjacentHTML('afterend', HTML)
         }
         else {
-          shippingElement.innerHTML = HTML
+          itemShippingElement.innerHTML = HTML
         }
       }
     }
