@@ -1,14 +1,18 @@
 // ==UserScript==
 // @name         ebaytotalprice-userscript
 // @namespace    https://github.com/subz390
-// @version      2.0.2.201225055452
+// @version      2.1.4.210131101045
 // @description  Add the total eBay auction price including postage in the auction listing
 // @author       SubZ390
 // @license      MIT
 // @run-at       document-idle
 // @grant        none
 // @noframes
+// @include      /^https?://(ar|b[ory]|c[lor]|do|ec|gt|hn|il|kz|mx|ni|p[aerty]|ru|sv|uy|ve|www)\.ebay\.com/
+// @include      /^https?://www\.ebay\.com\.au/
 // @include      /^https?://www\.ebay\.co\.uk/
+// @include      /^https?://www\.ebay\.(at|ca|de|es|fr|ie|it|nl|ph|pl)/
+// @include      /^https?://www\.be(nl|fr)\.ebay\.be/
 //
 //
 // ==/UserScript==
@@ -20,23 +24,53 @@ function realTypeOf(object, lowerCase = true) {
   return lowerCase === true ? internalClass.toLowerCase() : internalClass
 }
 
+function waitForMini({tryFor = 3, every = 100, test = () => false, success = () => null, timeout = () => null} = {}) {
+  function leadingEdge() {
+    const testResult = test();
+    if (testResult) {
+      success(testResult);
+      return true
+    }
+    return false
+  }
+  if (leadingEdge() === false) {
+    const intervalReference = setInterval(() => {
+      const testResult = test();
+      if (testResult) {
+        clearInterval(intervalReference);
+        clearTimeout(setTimeoutReference);
+        success(testResult);
+      }
+    }, every);
+    const setTimeoutReference = setTimeout(() => {
+      clearInterval(intervalReference);
+      timeout();
+    }, tryFor * 1000);
+  }
+}
+
 function styleInject(style, className = undefined) {
   const el = document.createElement('style');
   el.appendChild(document.createTextNode(style));
   if (className) {el.className = className;}
-  document.head.appendChild(el);
-  return el
+  waitForMini({
+    tryFor: 2,
+    every: 100,
+    test: () => document.querySelector('head'),
+    success: (testResult) => {testResult.appendChild(el);}
+  });
 }
 
 function findMatch(string, regex, index) {
   if (string === null) return null
   index = index || 1;
-  let m = string.match(regex);
+  const m = string.match(regex);
   return (m) ? (index=='all' ? m : (m[index] ? m[index] : m[0])) : null
 }
 
 function getNode(node = '', debug = undefined, scope = document) {
   try {
+    scope = scope === null ? document : scope;
     if (typeof node == 'string') {
       if (node == '') {return null}
       if (typeof scope == 'string') {
@@ -56,13 +90,13 @@ function getNode(node = '', debug = undefined, scope = document) {
   }
 }
 
-function setDefault(paramOptions, paramDefault = undefined, paramAction = undefined, debugging = undefined) {
+function setDefault(paramOptions, paramDefault = undefined, paramAction = undefined, debug = undefined) {
   let globalObject;
   let globalOptions;
   let globalAction;
   let globalDefault;
   if (realTypeOf(paramOptions) === 'object') {
-    const getProp = (object, array) => {
+    function getValue(object, array) {
       const name = array.find(name => object.hasOwnProperty(name));
       if (typeof name !== 'undefined') {
         return object[name]
@@ -70,11 +104,11 @@ function setDefault(paramOptions, paramDefault = undefined, paramAction = undefi
       else {
         return undefined
       }
-    };
-    globalOptions = getProp(paramOptions, ['option', 'options', 'property', 'props', 'properties']);
-    globalObject = getProp(paramOptions, ['object']);
-    globalDefault = getProp(paramOptions, ['default']);
-    globalAction = getProp(paramOptions, ['action', 'callback']);
+    }
+    globalOptions = getValue(paramOptions, ['option', 'options', 'property', 'props', 'properties']);
+    globalObject = getValue(paramOptions, ['object']);
+    globalDefault = getValue(paramOptions, ['default']);
+    globalAction = getValue(paramOptions, ['action', 'callback']);
   }
   else {
     globalOptions = paramOptions;
@@ -132,9 +166,17 @@ function setDefault(paramOptions, paramDefault = undefined, paramAction = undefi
   return globalDefault
 }
 
-function qs({selector = null, scope = document, array = false, all = false, contains = null, unittest = false} = {}) {
+function qs({selector = null, scope = document, array = false, all = false, contains = null, unittest = false, debugTag = ''} = {}) {
+  const language = {
+    en: {
+      selectorUndefined: `${debugTag}selector is undefined`,
+      scopeNotFound: `${debugTag}scope not found`,
+    }
+  };
+  if (unittest === 'language') {return language}
   try {
     if (selector === null) {
+      console.error(language.en.selectorUndefined);
       return null
     }
     if (scope !== document) {
@@ -144,13 +186,23 @@ function qs({selector = null, scope = document, array = false, all = false, cont
       }
     }
     if (unittest === 'scope') {return scope}
+    if (unittest === 'options') {
+      return {
+        selector: selector,
+        scope: scope,
+        array: array,
+        all: all,
+        contains: contains,
+        unittest: unittest
+      }
+    }
     if (all === true) {
-      const qsNodeList = scope.querySelectorAll(selector);
-      if (qsNodeList.length === 0) {return null}
+      const staticNodeList = scope.querySelectorAll(selector);
+      if (staticNodeList.length === 0) {return null}
       if (array === true) {
         if (contains !== null) {
-          let tempArray = [];
-          qsNodeList.forEach((element) => {
+          const tempArray = [];
+          staticNodeList.forEach((element) => {
             if (element.textContent.search(contains) !== -1) {
               tempArray.push(element);
             }
@@ -158,16 +210,18 @@ function qs({selector = null, scope = document, array = false, all = false, cont
           if (tempArray.length === 0) {return null}
           else {return tempArray}
         }
-        return Array.from(qsNodeList)
+        return Array.from(staticNodeList)
       }
       else {
         if (contains !== null) {
-          for (let index = 0; index < qsNodeList.length; index++) {
-            if (qsNodeList[index].textContent.search(contains) !== -1) {return qsNodeList[index]}
+          for (let index = 0; index < staticNodeList.length; index++) {
+            if (staticNodeList[index].textContent.search(contains) !== -1) {
+              return staticNodeList
+            }
           }
           return null
         }
-        return qsNodeList
+        return staticNodeList
       }
     }
     else {
@@ -197,26 +251,85 @@ function sprintf(...args) {
     default: {regex: /{([^{}]+)}/g, template: args[0]},
   });
   if (realTypeOf(args[1]) == 'object') {
-    return options.template.replace(options.regex, function(match, n) {
-      for (let k = 1; args[k]; k++) {
-        if (args[k][n]) {
-          if (typeof args[k][n] == 'function') {return args[k][n]().toString()}
-          return args[k][n]
+    return options.template.replace(options.regex, (match, n) => {
+      for (let key = 1; args[key]; key++) {
+        if (args[key][n]) {
+          if (typeof args[key][n] == 'function') {
+            return args[key][n]().toString()
+          }
+          return args[key][n]
         }
       }
       return match
     })
   }
   else {
-    return options.template.replace(options.regex, function(match, n) {
-      return args[n] || match
-    })
+    return options.template.replace(options.regex, (match, n) => {return args[n] || match})
   }
 }
 
-var stylesheet = ".total-price{background:#bf0;color:#111!important;outline:2px solid;padding:1px 4px;margin-left:5px;font-size:20px!important;font-weight:400!important;}.s-item__detail{overflow:visible!important;}";
+const globals = {
+  priceMatchRegExp: /((\d+[,\.])+\d+)/,
+  currencySymbolsRegExp: /((((AU|C|US) )?\$)|EUR|PHP|zł|£)/,
+  itemPriceElementTemplate: '<span class="total-price">{currencySymbol}{totalPrice}</span>'
+};
 
-styleInject(stylesheet);
+function processMethod(options) {
+  try {
+    for (const [, value] of Object.entries(options)) {
+      for (let index = 0; index < value.identifierSelector.length; index++) {
+        const selector = value.identifierSelector[index];
+        const identifierNode = getNode(selector);
+        if (identifierNode !== null) {
+          value.process();
+          return
+        }
+      }
+    }
+  }
+  catch (error) {console.error(error);}
+}
+
+function getValue(element) {
+  try {
+    let value = findMatch(element.textContent.trim(), globals.priceMatchRegExp);
+    value = value.replace(/[,\.]/g, '');
+    value = parseFloat(value);
+    return value
+  }
+  catch (error) {
+    console.error(error);
+    return null
+  }
+}
+
+function processItemListing({listItemsSelector, itemPriceElementSelector, convertPriceElementSelector, itemPriceElementTemplate = null, itemShippingElementSelector, convertShippingElementSelector, itemShippingElementTemplate = null}) {
+  const content = qs({selector: listItemsSelector});
+  if (content) {
+    const itemPriceElement = qs({selector: convertPriceElementSelector, scope: content, contains: /\d/}) || qs({selector: itemPriceElementSelector, scope: content, contains: /\d/});
+    const itemShippingElement = qs({selector: convertShippingElementSelector, scope: content, contains: /\d/}) || qs({selector: itemShippingElementSelector, scope: content, contains: /\d/});
+    if (itemPriceElement && itemShippingElement) {
+      const priceCurrencySymbol = findMatch(itemPriceElement.textContent.trim(), globals.currencySymbolsRegExp);
+      const shippingCurrencySymbol = findMatch(itemShippingElement.textContent.trim(), globals.currencySymbolsRegExp);
+      if (shippingCurrencySymbol && (shippingCurrencySymbol === priceCurrencySymbol)) {
+        const totalPrice = ((getValue(itemPriceElement) + getValue(itemShippingElement)) / 100).toFixed(2);
+        const HTML = sprintf(
+          itemShippingElementTemplate || itemPriceElementTemplate, {
+            itemPrice: itemPriceElement.textContent.trim(),
+            itemShippingAmount: itemShippingElement.textContent.trim(),
+            currencySymbol: shippingCurrencySymbol,
+            totalPrice: totalPrice});
+        if (itemPriceElementTemplate) {
+          itemPriceElement.insertAdjacentHTML('afterend', HTML);
+        }
+        else {
+          itemShippingElement.innerHTML = HTML;
+        }
+      }
+    }
+  }
+}
+
 function processListGallery({listItemsSelector, itemPriceElementSelector, itemPriceElementTemplate = null, itemShippingElementSelector, itemShippingElementTemplate = null}) {
   const listItems = qs({selector: listItemsSelector, all: true, array: true});
   if (listItems) {
@@ -224,17 +337,16 @@ function processListGallery({listItemsSelector, itemPriceElementSelector, itemPr
       const itemPriceElement = qs({selector: itemPriceElementSelector, scope: listItems[i]});
       const itemShippingElement = qs({selector: itemShippingElementSelector, scope: listItems[i], contains: /\d/});
       if (itemPriceElement && itemShippingElement) {
-        const priceCurrencySymbol = findMatch(itemPriceElement.textContent.trim(), /(\$|£|EUR)/);
-        const shippingCurrencySymbol = findMatch(itemShippingElement.textContent.trim(), /(\$|£|EUR)/);
+        const priceCurrencySymbol = findMatch(itemPriceElement.textContent.trim(), globals.currencySymbolsRegExp);
+        const shippingCurrencySymbol = findMatch(itemShippingElement.textContent.trim(), globals.currencySymbolsRegExp);
         if (shippingCurrencySymbol && (shippingCurrencySymbol === priceCurrencySymbol)) {
-          const totalPrice = parseFloat(findMatch(itemPriceElement.textContent.trim(), /(\d+[\.,]\d+)/).replace(',', '.')) +
-                             parseFloat(findMatch(itemShippingElement.textContent.trim(), /(\d+[\.,]\d+)/).replace(',', '.'));
+          const totalPrice = ((getValue(itemPriceElement) + getValue(itemShippingElement)) / 100).toFixed(2);
           const HTML = sprintf(
             itemShippingElementTemplate || itemPriceElementTemplate, {
               itemPrice: itemPriceElement.textContent.trim(),
               itemShippingAmount: itemShippingElement.textContent.trim(),
-              shippingCurrencySymbol: shippingCurrencySymbol,
-              totalPrice: totalPrice.toFixed(2)});
+              currencySymbol: shippingCurrencySymbol,
+              totalPrice: totalPrice});
           if (itemPriceElementTemplate) {
             itemPriceElement.insertAdjacentHTML('afterend', HTML);
           }
@@ -246,41 +358,18 @@ function processListGallery({listItemsSelector, itemPriceElementSelector, itemPr
     }
   }
 }
-function processItemListing({listItemsSelector, itemPriceElementSelector, convertPriceElementSelector, itemPriceElementTemplate = null, itemShippingElementSelector, convertShippingElementSelector, itemShippingElementTemplate = null}) {
-  const content = qs({selector: listItemsSelector});
-  if (content) {
-    const priceElement = qs({selector: convertPriceElementSelector, scope: content}) || qs({selector: itemPriceElementSelector, scope: content});
-    const shippingElement = qs({selector: convertShippingElementSelector, scope: content, contains: /\d/}) || qs({selector: itemShippingElementSelector, scope: content, contains: /\d/});
-    if (priceElement && shippingElement) {
-      const priceCurrencySymbol = findMatch(priceElement.textContent.trim(), /([^\d ]+) ?\d+\.\d+/);
-      const shippingCurrencySymbol = findMatch(shippingElement.textContent.trim(), /([^\d ]+) ?\d+\.\d+/);
-      if (shippingCurrencySymbol && (shippingCurrencySymbol === priceCurrencySymbol)) {
-        const totalPrice = parseFloat(findMatch(priceElement.textContent.trim(), /(\d+\.\d+)/)) + parseFloat(findMatch(shippingElement.textContent.trim(), /(\d+\.\d+)/));
-        const HTML = sprintf(
-          itemShippingElementTemplate || itemPriceElementTemplate, {
-            itemPrice: priceElement.textContent.trim(),
-            itemShippingAmount: shippingElement.textContent.trim(),
-            shippingCurrencySymbol: shippingCurrencySymbol,
-            totalPrice: totalPrice.toFixed(2)});
-        if (itemPriceElementTemplate) {
-          priceElement.insertAdjacentHTML('afterend', HTML);
-        }
-        else {
-          shippingElement.innerHTML = HTML;
-        }
-      }
-    }
-  }
-}
-const itemPriceElementTemplate = '<span class="total-price">{shippingCurrencySymbol}{totalPrice}</span>';
-const options = {
+
+var stylesheet = ".total-price{background:#bf0;color:#111!important;outline:2px solid;padding:1px 4px;margin-left:5px;font-size:20px!important;font-weight:400!important;}.s-item__detail{overflow:visible!important;}";
+
+styleInject(stylesheet);
+processMethod({
   search: {
     identifierSelector: ['#mainContent ul.srp-results', '#mainContent ul.b-list__items_nofooter'],
     process: () => processListGallery({
       listItemsSelector: '#mainContent li.s-item',
       itemPriceElementSelector: '.s-item__price',
       itemShippingElementSelector: '.s-item__shipping',
-      itemPriceElementTemplate: itemPriceElementTemplate
+      itemPriceElementTemplate: globals.itemPriceElementTemplate
     })
   },
   sch: {
@@ -289,34 +378,18 @@ const options = {
       listItemsSelector: '#mainContent li',
       itemPriceElementSelector: '.lvprice span',
       itemShippingElementSelector: '.lvshipping span.fee',
-      itemPriceElementTemplate: itemPriceElementTemplate
+      itemPriceElementTemplate: globals.itemPriceElementTemplate
     })
   },
   itm: {
     identifierSelector: ['#mainContent form[name="viactiondetails"]'],
     process: () => processItemListing({
       listItemsSelector: '#mainContent',
-      itemPriceElementSelector: '#prcIsum_bidPrice',
+      itemPriceElementSelector: 'span[itemprop="price"]',
       convertPriceElementSelector: '#prcIsumConv',
       itemShippingElementSelector: '#fshippingCost',
       convertShippingElementSelector: '#convetedPriceId',
-      itemPriceElementTemplate: itemPriceElementTemplate
+      itemPriceElementTemplate: globals.itemPriceElementTemplate
     })
   }
-};
-function identifyMethod(option, value) {
-  for (const [option, value] of Object.entries(options)) {
-    for (let index = 0; index < value.identifierSelector.length; index++) {
-      const selector = value.identifierSelector[index];
-      const identifierNode = getNode(selector);
-      if (identifierNode !== null) {
-        value.process();
-        return
-      }
-    }
-  }
-}
-try {
-  identifyMethod();
-}
-catch (error) {console.error(error);}
+});

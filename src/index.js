@@ -31,7 +31,7 @@ processMethod({
     identifierSelector: ['#mainContent form[name="viactiondetails"]'],
     process: () => processItemListing({
       listItemsSelector: '#mainContent',
-      itemPriceElementSelector: '#prcIsum_bidPrice',
+      itemPriceElementSelector: 'span[itemprop="price"]',
       convertPriceElementSelector: '#prcIsumConv',
       itemShippingElementSelector: '#fshippingCost',
       convertShippingElementSelector: '#convetedPriceId',
