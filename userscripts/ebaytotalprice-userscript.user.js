@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ebaytotalprice-userscript
 // @namespace    https://github.com/subz390
-// @version      2.1.4.210131101045
+// @version      2.1.5.210131122553
 // @description  Add the total eBay auction price including postage in the auction listing
 // @author       SubZ390
 // @license      MIT
@@ -276,16 +276,18 @@ const globals = {
 
 function processMethod(options) {
   try {
-    for (const [, value] of Object.entries(options)) {
-      for (let index = 0; index < value.identifierSelector.length; index++) {
-        const selector = value.identifierSelector[index];
-        const identifierNode = getNode(selector);
-        if (identifierNode !== null) {
-          value.process();
-          return
+    function getMethod() {
+      for (const [, method] of Object.entries(options)) {
+        for (let index = 0; index < method.identifierSelector.length; index++) {
+          const selector = method.identifierSelector[index];
+          const identifierNode = getNode(selector);
+          if (identifierNode !== null) {return method}
         }
       }
+      return null
     }
+    const method = getMethod(options);
+    if (method !== null) {method.process();}
   }
   catch (error) {console.error(error);}
 }

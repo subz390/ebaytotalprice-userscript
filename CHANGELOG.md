@@ -1,6 +1,7 @@
 # CHANGELOG
 
 ## 210131
+- 2.1.5 improvement, reliability: made `processMethod` a little more robust
 - 2.1.4 documentation
 - 2.1.3 fix issue where total price not calculated on some item auction pages
 
