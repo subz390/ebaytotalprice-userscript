@@ -1,5 +1,8 @@
 # CHANGELOG
 
+## 210209
+- 2.2.0 upgrade to use `appendStyle` dependency
+
 ## 210131
 - 2.1.5 improvement, reliability: made `processMethod` a little more robust
 - 2.1.4 documentation

@@ -5,7 +5,7 @@ import {processItemListing} from './library/processItemListing.js'
 import {processListGallery} from './library/processListGallery.js'
 
 import stylesheet from './style.css'
-jsutils.styleInject(stylesheet)
+jsutils.appendStyle({style: stylesheet})
 
 
 processMethod({

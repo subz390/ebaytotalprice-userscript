@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ebaytotalprice-userscript
 // @namespace    https://github.com/subz390
-// @version      2.1.5.210131122553
+// @version      2.2.0.210209163142
 // @description  Add the total eBay auction price including postage in the auction listing
 // @author       SubZ390
 // @license      MIT
@@ -49,25 +49,6 @@ function waitForMini({tryFor = 3, every = 100, test = () => false, success = () 
   }
 }
 
-function styleInject(style, className = undefined) {
-  const el = document.createElement('style');
-  el.appendChild(document.createTextNode(style));
-  if (className) {el.className = className;}
-  waitForMini({
-    tryFor: 2,
-    every: 100,
-    test: () => document.querySelector('head'),
-    success: (testResult) => {testResult.appendChild(el);}
-  });
-}
-
-function findMatch(string, regex, index) {
-  if (string === null) return null
-  index = index || 1;
-  const m = string.match(regex);
-  return (m) ? (index=='all' ? m : (m[index] ? m[index] : m[0])) : null
-}
-
 function getNode(node = '', debug = undefined, scope = document) {
   try {
     scope = scope === null ? document : scope;
@@ -88,6 +69,36 @@ function getNode(node = '', debug = undefined, scope = document) {
   catch (error) {
     console.error(error);
   }
+}
+
+function appendStyle({style: styleString, className = undefined, whereAdjacent = 'afterend', whereTarget = 'body', tryFor = 5, failMessage = undefined}) {
+  return new Promise((resolve, reject) => {
+    const styleElement = document.createElement('style');
+    styleElement.appendChild(document.createTextNode(styleString));
+    if (className) {styleElement.className = className;}
+    function appendTarget(targetNode, styleElement) {
+      if (whereAdjacent !== undefined) {
+        return targetNode.insertAdjacentElement(whereAdjacent, styleElement)
+      }
+      else {
+        return targetNode.appendChild(styleElement)
+      }
+    }
+    waitForMini({
+      tryFor: tryFor,
+      every: 100,
+      test: () => getNode(whereTarget),
+      success: (targetNode) => {resolve(appendTarget(targetNode, styleElement));},
+      timeout: () => reject(Error(failMessage || `appendStyle timed out whilst waiting for targetNode: ${whereTarget}`))
+    });
+  })
+}
+
+function findMatch(string, regex, index) {
+  if (string === null) return null
+  index = index || 1;
+  const m = string.match(regex);
+  return (m) ? (index=='all' ? m : (m[index] ? m[index] : m[0])) : null
 }
 
 function setDefault(paramOptions, paramDefault = undefined, paramAction = undefined, debug = undefined) {
@@ -363,7 +374,7 @@ function processListGallery({listItemsSelector, itemPriceElementSelector, itemPr
 
 var stylesheet = ".total-price{background:#bf0;color:#111!important;outline:2px solid;padding:1px 4px;margin-left:5px;font-size:20px!important;font-weight:400!important;}.s-item__detail{overflow:visible!important;}";
 
-styleInject(stylesheet);
+appendStyle({style: stylesheet});
 processMethod({
   search: {
     identifierSelector: ['#mainContent ul.srp-results', '#mainContent ul.b-list__items_nofooter'],
