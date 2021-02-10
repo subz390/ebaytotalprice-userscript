@@ -35,7 +35,7 @@
 
 # Contributing / Code Discussions
 
-* Hello, I'm friendly, and I welcome discussions and pull requests related to this repo.  Feel free to open a discussion if you'd like to chat about something.
-* For a cursuary review of the code you'll find all the functions and methods are bundled into the `user.js` file without comments but no mangling so should be easily readable.
-* If you'd like to develop and build for the project you'll need to request access to the developer branch and the `@subz390/jsutils` library.  Open a new discussion about that and we can figure out the details.
+* Hello, I'm friendly, and I welcome discussions and pull requests related to this repo.  Feel free to open a [discussion](https://github.com/subz390/ebaytotalprice-userscript/discussions) if you'd like to chat about something.
+* For a cursuary review of the code you'll find all the functions and methods are bundled into the [ebaytotalprice-userscript.user.js](https://github.com/subz390/ebaytotalprice-userscript/blob/master/userscripts/ebaytotalprice-userscript.user.js) file without comments but no mangling so should be easily readable.
+* If you'd like to develop and build for the project you'll need to request access to the developer branch and the `@subz390/jsutils` library.  Open a new [discussion](https://github.com/subz390/ebaytotalprice-userscript/discussions) about that and we can figure out the details.  I don't automatically make those publicaly available due to the maintenance efforts required to do that and my limited time available to do so.  However with more people to maintain something like that it would be a more viable option.
 * I only accept [Clean Code](https://www.udemy.com/course/writing-clean-code/) contributions, that is to say you should be aspiring to create human readable source code, and leave the minification, mangling and other JavaScript optimizations to [Terser](https://github.com/terser/terser).
