@@ -1,6 +1,6 @@
 .total-price {
   background: #bf0;
-  color: #111 !important;
+  color: #f00 !important; /* made red so it works with Dark Reader browser plugin */
   outline: 2px solid;
   padding: 1px 4px;
   margin-left: 5px;

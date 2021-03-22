@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 210322
+- 2.2.1 changed the `color` style for total-price to that it works with Dark Reader browser plugin
+        small updates brought in from `jsutils` library dependencies
+
 ## 210209
 - 2.2.0 upgrade to use `appendStyle` dependency
 

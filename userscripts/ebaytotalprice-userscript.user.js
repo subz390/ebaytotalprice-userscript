@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ebaytotalprice-userscript
 // @namespace    https://github.com/subz390
-// @version      2.2.0.210209163142
+// @version      2.2.0.210321235612
 // @description  Add the total eBay auction price including postage in the auction listing
 // @author       SubZ390
 // @license      MIT
@@ -20,7 +20,7 @@
 function realTypeOf(object, lowerCase = true) {
   if (typeof object !== 'object') {return typeof object}
   if (object === null) {return 'null'}
-  const internalClass = Object.prototype.toString.call(object).match(/\[object\s(\w+)\]/)[1];
+  const internalClass = Object.prototype.toString.call(object).slice(8, -1);
   return lowerCase === true ? internalClass.toLowerCase() : internalClass
 }
 
@@ -52,19 +52,36 @@ function waitForMini({tryFor = 3, every = 100, test = () => false, success = () 
 function getNode(node = '', debug = undefined, scope = document) {
   try {
     scope = scope === null ? document : scope;
-    if (typeof node == 'string') {
+    const nodeType = realTypeOf(node);
+    if (nodeType == 'string') {
       if (node == '') {return null}
-      if (typeof scope == 'string') {
+      let scopeType = realTypeOf(scope);
+      if (scopeType == 'text') {
+        return null
+      }
+      if (scopeType == 'string') {
         const tempScope = document.querySelector(scope);
         if (tempScope == null) {
           return null
         }
         scope = tempScope;
       }
-      const element = scope.querySelector(node);
-      return element
+      scopeType = realTypeOf(scope);
+      if (scopeType.search(/array|nodelist|html/i) !== -1) {
+        nodeType;
+        const element = scope.querySelector(node);
+        return element
+      }
+      else {
+        return null
+      }
     }
-    return node
+    else if (nodeType.search(/array|nodelist|html/i) !== -1) {
+      return node
+    }
+    else {
+      return null
+    }
   }
   catch (error) {
     console.error(error);
@@ -94,9 +111,8 @@ function appendStyle({style: styleString, className = undefined, whereAdjacent =
   })
 }
 
-function findMatch(string, regex, index) {
+function findMatch(string, regex, index = 1) {
   if (string === null) return null
-  index = index || 1;
   const m = string.match(regex);
   return (m) ? (index=='all' ? m : (m[index] ? m[index] : m[0])) : null
 }
@@ -181,7 +197,7 @@ function qs({selector = null, scope = document, array = false, all = false, cont
   const language = {
     en: {
       selectorUndefined: `${debugTag}selector is undefined`,
-      scopeNotFound: `${debugTag}scope not found`,
+      scopeNotUseable: `${debugTag}scope is not useable`,
     }
   };
   if (unittest === 'language') {return language}
@@ -264,7 +280,10 @@ function sprintf(...args) {
   if (realTypeOf(args[1]) == 'object') {
     return options.template.replace(options.regex, (match, n) => {
       for (let key = 1; args[key]; key++) {
-        if (args[key][n]) {
+        if (typeof args[key][n] == 'string' && args[key][n].length == 0) {
+          return ''
+        }
+        else if (args[key][n]) {
           if (typeof args[key][n] == 'function') {
             return args[key][n]().toString()
           }
@@ -372,7 +391,7 @@ function processListGallery({listItemsSelector, itemPriceElementSelector, itemPr
   }
 }
 
-var stylesheet = ".total-price{background:#bf0;color:#111!important;outline:2px solid;padding:1px 4px;margin-left:5px;font-size:20px!important;font-weight:400!important;}.s-item__detail{overflow:visible!important;}";
+var stylesheet = ".total-price{background:#bf0;color:#f00!important;outline:2px solid;padding:1px 4px;margin-left:5px;font-size:20px!important;font-weight:400!important;}.s-item__detail{overflow:visible!important;}";
 
 appendStyle({style: stylesheet});
 processMethod({
