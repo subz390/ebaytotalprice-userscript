@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 211012
+- 2.3.1 add dynamic total price calculation for multi-buy format auctions
+        https://www.ebay.co.uk/itm/324826913572
+        https://www.ebay.com/itm/252972628321
+- 2.3.0 upgrade library dependencies `sprintf2` and `getNode`
+- 2.2.2 fix issue when price is displayed with different currency format in item and shipping `US $00.00` vs `$00.00`
+
+
 ## 210322
 - 2.2.1 changed the `color` style for total-price to that it works with Dark Reader browser plugin
         small updates brought in from `jsutils` library dependencies

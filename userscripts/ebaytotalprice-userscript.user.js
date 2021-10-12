@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ebaytotalprice-userscript
 // @namespace    https://github.com/subz390
-// @version      2.2.0.210321235612
+// @version      2.3.1.211012101701
 // @description  Add the total eBay auction price including postage in the auction listing
 // @author       SubZ390
 // @license      MIT
@@ -67,7 +67,7 @@ function getNode(node = '', debug = undefined, scope = document) {
         scope = tempScope;
       }
       scopeType = realTypeOf(scope);
-      if (scopeType.search(/array|nodelist|html/i) !== -1) {
+      if (scopeType.search(/array|nodelist|svgsvgelement|html/i) !== -1) {
         nodeType;
         const element = scope.querySelector(node);
         return element
@@ -76,8 +76,11 @@ function getNode(node = '', debug = undefined, scope = document) {
         return null
       }
     }
-    else if (nodeType.search(/array|nodelist|html/i) !== -1) {
+    else if (nodeType.search(/array|nodelist|svgsvgelement|html/i) !== -1) {
       return node
+    }
+    else if (nodeType.search(/null/) !== -1) {
+      return null
     }
     else {
       return null
@@ -111,86 +114,38 @@ function appendStyle({style: styleString, className = undefined, whereAdjacent =
   })
 }
 
+function sprintf2({template = '', regex = /{([^{}]+)}/g, values} = {}) {
+  if (template === '') {
+    console.warn('template is an empty string');
+    return null
+  }
+  function templateReplace(replaceTemplate, replaceValues) {
+    return replaceTemplate.replace(regex, (match, name) => {
+      if (replaceValues[name]) {
+        if (typeof replaceValues[name] === 'function') {
+          return replaceValues[name]().toString()
+        }
+        return replaceValues[name] || match
+      }
+      if (typeof replaceValues[name] === 'string' && replaceValues[name].length == 0) {
+        return ''
+      }
+      return match
+    })
+  }
+  if (Array.isArray(values)) {
+    values.forEach((object) => {template = templateReplace(template, object);});
+    return template
+  }
+  else {
+    return templateReplace(template, values)
+  }
+}
+
 function findMatch(string, regex, index = 1) {
   if (string === null) return null
   const m = string.match(regex);
   return (m) ? (index=='all' ? m : (m[index] ? m[index] : m[0])) : null
-}
-
-function setDefault(paramOptions, paramDefault = undefined, paramAction = undefined, debug = undefined) {
-  let globalObject;
-  let globalOptions;
-  let globalAction;
-  let globalDefault;
-  if (realTypeOf(paramOptions) === 'object') {
-    function getValue(object, array) {
-      const name = array.find(name => object.hasOwnProperty(name));
-      if (typeof name !== 'undefined') {
-        return object[name]
-      }
-      else {
-        return undefined
-      }
-    }
-    globalOptions = getValue(paramOptions, ['option', 'options', 'property', 'props', 'properties']);
-    globalObject = getValue(paramOptions, ['object']);
-    globalDefault = getValue(paramOptions, ['default']);
-    globalAction = getValue(paramOptions, ['action', 'callback']);
-  }
-  else {
-    globalOptions = paramOptions;
-    globalDefault = paramDefault;
-    globalAction = paramAction;
-  }
-  if (globalOptions === undefined) {
-    return globalDefault
-  }
-  if (typeof globalAction === 'string' && globalAction === 'set') {
-    return globalDefault
-  }
-  function doAction(option, action = undefined, object = {}) {
-    if (typeof action === 'function') {
-      return action(option, object)
-    }
-    else {
-      return option
-    }
-  }
-  if (realTypeOf(globalObject) === 'object') {
-    if (realTypeOf(globalOptions) === 'array') {
-      for (let i=0; i < globalOptions.length; i++) {
-        if (globalObject.hasOwnProperty(globalOptions[i])) {
-          const result = doAction(globalObject[globalOptions[i]], globalAction, globalObject);
-          if (result !== undefined) {
-            return result
-          }
-        }
-      }
-    }
-    else if (typeof globalOptions === 'string' && globalObject.hasOwnProperty(globalOptions)) {
-      const result = doAction(globalObject[globalOptions], globalAction, globalObject);
-      if (result !== undefined) {
-        return result
-      }
-    }
-  }
-  else if (realTypeOf(globalOptions) === 'array') {
-    for (let i=0; i < globalOptions.length; i++) {
-      if (globalOptions[i] !== undefined) {
-        const result = doAction(globalOptions[i], globalAction, globalObject);
-        if (result !== undefined) {
-          return result
-        }
-      }
-    }
-  }
-  else {
-    const result = doAction(globalOptions, globalAction, globalObject);
-    if (result !== undefined) {
-      return result
-    }
-  }
-  return globalDefault
 }
 
 function qs({selector = null, scope = document, array = false, all = false, contains = null, unittest = false, debugTag = ''} = {}) {
@@ -266,42 +221,12 @@ function qs({selector = null, scope = document, array = false, all = false, cont
   }
 }
 
-function sprintf(...args) {
-  if (Object.keys(args).length == 0) {
-    return null
-  }
-  if (args[0] === '') {
-    return null
-  }
-  const options = setDefault({
-    options: [realTypeOf(args[0]) == 'object' ? args[0] : undefined],
-    default: {regex: /{([^{}]+)}/g, template: args[0]},
-  });
-  if (realTypeOf(args[1]) == 'object') {
-    return options.template.replace(options.regex, (match, n) => {
-      for (let key = 1; args[key]; key++) {
-        if (typeof args[key][n] == 'string' && args[key][n].length == 0) {
-          return ''
-        }
-        else if (args[key][n]) {
-          if (typeof args[key][n] == 'function') {
-            return args[key][n]().toString()
-          }
-          return args[key][n]
-        }
-      }
-      return match
-    })
-  }
-  else {
-    return options.template.replace(options.regex, (match, n) => {return args[n] || match})
-  }
-}
-
 const globals = {
   priceMatchRegExp: /((\d+[,\.])+\d+)/,
-  currencySymbolsRegExp: /((((AU|C|US) )?\$)|EUR|PHP|zł|£)/,
-  itemPriceElementTemplate: '<span class="total-price">{currencySymbol}{totalPrice}</span>'
+  currencySymbolsRegExp: /(\$|EUR|PHP|zł|£)/,
+  itemPriceElementTemplate: '<span class="total-price">{currencySymbol}{totalPrice}</span>',
+  itemPriceElementTemplateSelector: 'span.total-price',
+  itemPriceElementInnerTextTemplate: '{currencySymbol}{totalPrice}',
 };
 
 function processMethod(options) {
@@ -345,18 +270,40 @@ function processItemListing({listItemsSelector, itemPriceElementSelector, conver
       const shippingCurrencySymbol = findMatch(itemShippingElement.textContent.trim(), globals.currencySymbolsRegExp);
       if (shippingCurrencySymbol && (shippingCurrencySymbol === priceCurrencySymbol)) {
         const totalPrice = ((getValue(itemPriceElement) + getValue(itemShippingElement)) / 100).toFixed(2);
-        const HTML = sprintf(
-          itemShippingElementTemplate || itemPriceElementTemplate, {
+        const HTML = sprintf2({
+          template: itemShippingElementTemplate || itemPriceElementTemplate,
+          values: {
             itemPrice: itemPriceElement.textContent.trim(),
             itemShippingAmount: itemShippingElement.textContent.trim(),
             currencySymbol: shippingCurrencySymbol,
-            totalPrice: totalPrice});
+            totalPrice: totalPrice
+          }});
         if (itemPriceElementTemplate) {
           itemPriceElement.insertAdjacentHTML('afterend', HTML);
         }
         else {
           itemShippingElement.innerHTML = HTML;
         }
+        const itemPriceElementObserver = new MutationObserver((mutationList, observer) => {
+          mutationList.forEach((mutation) => {
+            mutation.addedNodes.forEach((element) => {
+              if (element.nodeName == '#text') {
+                const totalPriceElement = getNode(globals.itemPriceElementTemplateSelector);
+                const totalPrice = ((getValue(itemPriceElement) + getValue(itemShippingElement)) / 100).toFixed(2);
+                const totalPriceText = sprintf2({
+                  template: globals.itemPriceElementInnerTextTemplate,
+                  values: {
+                    itemPrice: itemPriceElement.textContent.trim(),
+                    itemShippingAmount: itemShippingElement.textContent.trim(),
+                    currencySymbol: shippingCurrencySymbol,
+                    totalPrice: totalPrice
+                  }});
+                totalPriceElement.textContent = totalPriceText;
+              }
+            });
+          });
+        });
+        itemPriceElementObserver.observe(itemPriceElement, {childList: true});
       }
     }
   }
@@ -373,12 +320,14 @@ function processListGallery({listItemsSelector, itemPriceElementSelector, itemPr
         const shippingCurrencySymbol = findMatch(itemShippingElement.textContent.trim(), globals.currencySymbolsRegExp);
         if (shippingCurrencySymbol && (shippingCurrencySymbol === priceCurrencySymbol)) {
           const totalPrice = ((getValue(itemPriceElement) + getValue(itemShippingElement)) / 100).toFixed(2);
-          const HTML = sprintf(
-            itemShippingElementTemplate || itemPriceElementTemplate, {
+          const HTML = sprintf2({
+            template: itemShippingElementTemplate || itemPriceElementTemplate,
+            values: {
               itemPrice: itemPriceElement.textContent.trim(),
               itemShippingAmount: itemShippingElement.textContent.trim(),
               currencySymbol: shippingCurrencySymbol,
-              totalPrice: totalPrice});
+              totalPrice: totalPrice
+            }});
           if (itemPriceElementTemplate) {
             itemPriceElement.insertAdjacentHTML('afterend', HTML);
           }

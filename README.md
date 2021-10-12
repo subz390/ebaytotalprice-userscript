@@ -9,7 +9,9 @@
 
 ## Known Issues
 
-* Due to the number of sites and pages across the eBay empire, expect there to be pages where the script doesn't find the prices to add up.  I'll keep updating the script as I personally use it, however if you find any pages that could do with adding then just let me know.
+* Due to the number of sites and pages across the eBay empire, expect there to be pages where the script doesn't find the prices to add up.
+* For the above reason `eBay Total Auction Price` script comes with no guarantee that it'll catch every single instance of a total price.
+* However, if you find a page that needs updating then create a new issue including a link and a short description so that I can investigate further.
 
 ## Install Options
 

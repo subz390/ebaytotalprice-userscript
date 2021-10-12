@@ -27,12 +27,14 @@ export function processListGallery({listItemsSelector, itemPriceElementSelector,
         if (shippingCurrencySymbol && (shippingCurrencySymbol === priceCurrencySymbol)) {
           const totalPrice = ((getValue(itemPriceElement) + getValue(itemShippingElement)) / 100).toFixed(2)
 
-          const HTML = jsutils.sprintf(
-            itemShippingElementTemplate || itemPriceElementTemplate, {
+          const HTML = jsutils.sprintf2({
+            template: itemShippingElementTemplate || itemPriceElementTemplate,
+            values: {
               itemPrice: itemPriceElement.textContent.trim(),
               itemShippingAmount: itemShippingElement.textContent.trim(),
               currencySymbol: shippingCurrencySymbol,
-              totalPrice: totalPrice})
+              totalPrice: totalPrice
+            }})
 
           if (itemPriceElementTemplate) {
             itemPriceElement.insertAdjacentHTML('afterend', HTML)
