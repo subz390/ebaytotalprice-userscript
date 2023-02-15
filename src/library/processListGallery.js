@@ -9,7 +9,7 @@ export function processListGallery({listItemsSelector, itemPriceElementSelector,
   // console.log('listItems', listItems)
 
   if (listItems) {
-    for (let i=0; listItems[i]; i++) {
+    for (let i = 0; listItems[i]; i++) {
       const itemPriceElement = jsutils.qs({selector: itemPriceElementSelector, scope: listItems[i]})
       // console.log('itemPriceElement', itemPriceElement)
 
@@ -34,7 +34,8 @@ export function processListGallery({listItemsSelector, itemPriceElementSelector,
               itemShippingAmount: itemShippingElement.textContent.trim(),
               currencySymbol: shippingCurrencySymbol,
               totalPrice: totalPrice
-            }})
+            }
+          })
 
           if (itemPriceElementTemplate) {
             itemPriceElement.insertAdjacentHTML('afterend', HTML)
