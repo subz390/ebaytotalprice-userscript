@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 230215
+- 2.3.3 fix issue with broken price matching due to eBay site changes and update postage matching method to make it more robust against site updates
+
+## 220704
+- 2.3.2 update `total-price` CSS colors because Dark Reader plugin changed it's dark methods again
+
 ## 211012
 - 2.3.1 add dynamic total price calculation for multi-buy format auctions
         https://www.ebay.co.uk/itm/324826913572

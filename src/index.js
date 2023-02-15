@@ -7,6 +7,9 @@ import {processListGallery} from './library/processListGallery.js'
 import stylesheet from './style.css'
 jsutils.appendStyle({style: stylesheet})
 
+// ideas for using the intl library to format currency
+// import {getLang} from './library/getLang.js'
+// console.log('getLang', getLang())
 
 processMethod({
   search: {
@@ -33,7 +36,7 @@ processMethod({
       listItemsSelector: '#mainContent',
       itemPriceElementSelector: 'span[itemprop="price"]',
       convertPriceElementSelector: '#prcIsumConv',
-      itemShippingElementSelector: '#fshippingCost',
+      itemShippingElementSelector: 'div[class*="shipping"]', // #fshippingCost
       convertShippingElementSelector: '#convetedPriceId',
       itemPriceElementTemplate: globals.itemPriceElementTemplate
     })

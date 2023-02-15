@@ -1,6 +1,7 @@
 import * as jsutils from '@subz390/jsutils'
 import {getValue} from './getValue.js'
 import {globals} from './globals.js'
+import {findParent} from './findParent.js'
 
 export function processItemListing({listItemsSelector, itemPriceElementSelector, convertPriceElementSelector, itemPriceElementTemplate = null, itemShippingElementSelector, convertShippingElementSelector, itemShippingElementTemplate = null}) {
   const content = jsutils.qs({selector: listItemsSelector})
@@ -11,7 +12,20 @@ export function processItemListing({listItemsSelector, itemPriceElementSelector,
     const itemPriceElement = jsutils.qs({selector: convertPriceElementSelector, scope: content, contains: /\d/}) || jsutils.qs({selector: itemPriceElementSelector, scope: content, contains: /\d/})
     // console.log('itemPriceElement', itemPriceElement?.textContent.trim(), itemPriceElement)
 
-    const itemShippingElement = jsutils.qs({selector: convertShippingElementSelector, scope: content, contains: /\d/}) || jsutils.qs({selector: itemShippingElementSelector, scope: content, contains: /\d/})
+    // console.log('convertShippingElementSelector', convertShippingElementSelector)
+    // console.log('itemShippingElementSelector', itemShippingElementSelector)
+    let itemShippingElement = jsutils.qs({selector: convertShippingElementSelector, scope: content, contains: /\d/}) || jsutils.qs({selector: itemShippingElementSelector, scope: content, contains: /\d/})
+
+    // if shipping not found then try using the findParent method
+    if (itemShippingElement === null) {
+      // Find postage using the postage parent method
+      const postageSpan = jsutils.qs({selector: 'span', scope: content, contains: 'Postage:', all: true, array: true})
+      // console.log('postageSpan', postageSpan[0])
+      itemShippingElement = findParent({child: postageSpan[0], contains: /\d/})
+      // console.log('itemShippingElement', itemShippingElement)
+    }
+
+
     // console.log('itemShippingElement', itemShippingElement?.textContent.trim(), itemShippingElement)
 
     if (itemPriceElement && itemShippingElement) {
@@ -35,7 +49,8 @@ export function processItemListing({listItemsSelector, itemPriceElementSelector,
             itemShippingAmount: itemShippingElement.textContent.trim(),
             currencySymbol: shippingCurrencySymbol,
             totalPrice: totalPrice
-          }})
+          }
+        })
 
         if (itemPriceElementTemplate) {
           itemPriceElement.insertAdjacentHTML('afterend', HTML)
@@ -67,7 +82,8 @@ export function processItemListing({listItemsSelector, itemPriceElementSelector,
                     itemShippingAmount: itemShippingElement.textContent.trim(),
                     currencySymbol: shippingCurrencySymbol,
                     totalPrice: totalPrice
-                  }})
+                  }
+                })
 
                 // console.log('totalPriceText:', totalPriceText)
                 totalPriceElement.textContent = totalPriceText
