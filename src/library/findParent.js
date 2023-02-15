@@ -7,6 +7,7 @@
  * @return {null|node} parentNode or null if no parent found
  */
 export function findParent({child, contains = null}) {
+  if (contains === null) return null
   let parentNodeElement = child
 
   for (let i = 1; parentNodeElement.isEqualNode(document) === false; i++) {
