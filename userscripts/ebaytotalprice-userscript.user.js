@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ebaytotalprice-userscript
 // @namespace    https://github.com/subz390
-// @version      2.3.1.211012101701
+// @version      2.3.3.230215200537
 // @description  Add the total eBay auction price including postage in the auction listing
 // @author       SubZ390
 // @license      MIT
@@ -16,13 +16,6 @@
 //
 //
 // ==/UserScript==
-
-function realTypeOf(object, lowerCase = true) {
-  if (typeof object !== 'object') {return typeof object}
-  if (object === null) {return 'null'}
-  const internalClass = Object.prototype.toString.call(object).slice(8, -1);
-  return lowerCase === true ? internalClass.toLowerCase() : internalClass
-}
 
 function waitForMini({tryFor = 3, every = 100, test = () => false, success = () => null, timeout = () => null} = {}) {
   function leadingEdge() {
@@ -49,6 +42,14 @@ function waitForMini({tryFor = 3, every = 100, test = () => false, success = () 
   }
 }
 
+function realTypeOf(object, lowerCase = true) {
+  if (typeof object !== 'object') return typeof object
+  if (object === null) return 'null'
+  if (Array.isArray(object)) return 'array'
+  const internalClass = Object.prototype.toString.call(object).slice(8, -1);
+  return lowerCase === true ? internalClass.toLowerCase() : internalClass
+}
+
 function getNode(node = '', debug = undefined, scope = document) {
   try {
     scope = scope === null ? document : scope;
@@ -67,7 +68,7 @@ function getNode(node = '', debug = undefined, scope = document) {
         scope = tempScope;
       }
       scopeType = realTypeOf(scope);
-      if (scopeType.search(/array|nodelist|svgsvgelement|html/i) !== -1) {
+      if (scopeType.search(/array|nodelist|svgsvgelement|html|document/i) !== -1) {
         nodeType;
         const element = scope.querySelector(node);
         return element
@@ -114,6 +115,12 @@ function appendStyle({style: styleString, className = undefined, whereAdjacent =
   })
 }
 
+function findMatch(string, regex, index = 1) {
+  if (string === null) return null
+  const m = string.match(regex);
+  return (m) ? (index=='all' ? m : (m[index] ? m[index] : m[0])) : null
+}
+
 function sprintf2({template = '', regex = /{([^{}]+)}/g, values} = {}) {
   if (template === '') {
     console.warn('template is an empty string');
@@ -126,6 +133,9 @@ function sprintf2({template = '', regex = /{([^{}]+)}/g, values} = {}) {
           return replaceValues[name]().toString()
         }
         return replaceValues[name] || match
+      }
+      if (replaceValues[name] === 0) {
+        return replaceValues[name].toString()
       }
       if (typeof replaceValues[name] === 'string' && replaceValues[name].length == 0) {
         return ''
@@ -140,12 +150,6 @@ function sprintf2({template = '', regex = /{([^{}]+)}/g, values} = {}) {
   else {
     return templateReplace(template, values)
   }
-}
-
-function findMatch(string, regex, index = 1) {
-  if (string === null) return null
-  const m = string.match(regex);
-  return (m) ? (index=='all' ? m : (m[index] ? m[index] : m[0])) : null
 }
 
 function qs({selector = null, scope = document, array = false, all = false, contains = null, unittest = false, debugTag = ''} = {}) {
@@ -232,7 +236,7 @@ const globals = {
 function processMethod(options) {
   try {
     function getMethod() {
-      for (const [, method] of Object.entries(options)) {
+      for (const [type, method] of Object.entries(options)) {
         for (let index = 0; index < method.identifierSelector.length; index++) {
           const selector = method.identifierSelector[index];
           const identifierNode = getNode(selector);
@@ -260,11 +264,26 @@ function getValue(element) {
   }
 }
 
+function findParent({child, contains = null}) {
+  let parentNodeElement = child;
+  for (let i = 1; parentNodeElement.isEqualNode(document) === false; i++) {
+    if (parentNodeElement.textContent.search(contains) !== -1) {
+      return parentNodeElement
+    }
+    parentNodeElement = parentNodeElement.parentNode;
+  }
+  return null
+}
+
 function processItemListing({listItemsSelector, itemPriceElementSelector, convertPriceElementSelector, itemPriceElementTemplate = null, itemShippingElementSelector, convertShippingElementSelector, itemShippingElementTemplate = null}) {
   const content = qs({selector: listItemsSelector});
   if (content) {
     const itemPriceElement = qs({selector: convertPriceElementSelector, scope: content, contains: /\d/}) || qs({selector: itemPriceElementSelector, scope: content, contains: /\d/});
-    const itemShippingElement = qs({selector: convertShippingElementSelector, scope: content, contains: /\d/}) || qs({selector: itemShippingElementSelector, scope: content, contains: /\d/});
+    let itemShippingElement = qs({selector: convertShippingElementSelector, scope: content, contains: /\d/}) || qs({selector: itemShippingElementSelector, scope: content, contains: /\d/});
+    if (itemShippingElement === null) {
+      const postageSpan = qs({selector: 'span', scope: content, contains: 'Postage:', all: true, array: true});
+      itemShippingElement = findParent({child: postageSpan[0], contains: /\d/});
+    }
     if (itemPriceElement && itemShippingElement) {
       const priceCurrencySymbol = findMatch(itemPriceElement.textContent.trim(), globals.currencySymbolsRegExp);
       const shippingCurrencySymbol = findMatch(itemShippingElement.textContent.trim(), globals.currencySymbolsRegExp);
@@ -277,7 +296,8 @@ function processItemListing({listItemsSelector, itemPriceElementSelector, conver
             itemShippingAmount: itemShippingElement.textContent.trim(),
             currencySymbol: shippingCurrencySymbol,
             totalPrice: totalPrice
-          }});
+          }
+        });
         if (itemPriceElementTemplate) {
           itemPriceElement.insertAdjacentHTML('afterend', HTML);
         }
@@ -297,7 +317,8 @@ function processItemListing({listItemsSelector, itemPriceElementSelector, conver
                     itemShippingAmount: itemShippingElement.textContent.trim(),
                     currencySymbol: shippingCurrencySymbol,
                     totalPrice: totalPrice
-                  }});
+                  }
+                });
                 totalPriceElement.textContent = totalPriceText;
               }
             });
@@ -312,7 +333,7 @@ function processItemListing({listItemsSelector, itemPriceElementSelector, conver
 function processListGallery({listItemsSelector, itemPriceElementSelector, itemPriceElementTemplate = null, itemShippingElementSelector, itemShippingElementTemplate = null}) {
   const listItems = qs({selector: listItemsSelector, all: true, array: true});
   if (listItems) {
-    for (let i=0; listItems[i]; i++) {
+    for (let i = 0; listItems[i]; i++) {
       const itemPriceElement = qs({selector: itemPriceElementSelector, scope: listItems[i]});
       const itemShippingElement = qs({selector: itemShippingElementSelector, scope: listItems[i], contains: /\d/});
       if (itemPriceElement && itemShippingElement) {
@@ -327,7 +348,8 @@ function processListGallery({listItemsSelector, itemPriceElementSelector, itemPr
               itemShippingAmount: itemShippingElement.textContent.trim(),
               currencySymbol: shippingCurrencySymbol,
               totalPrice: totalPrice
-            }});
+            }
+          });
           if (itemPriceElementTemplate) {
             itemPriceElement.insertAdjacentHTML('afterend', HTML);
           }
@@ -340,7 +362,7 @@ function processListGallery({listItemsSelector, itemPriceElementSelector, itemPr
   }
 }
 
-var stylesheet = ".total-price{background:#bf0;color:#f00!important;outline:2px solid;padding:1px 4px;margin-left:5px;font-size:20px!important;font-weight:400!important;}.s-item__detail{overflow:visible!important;}";
+var stylesheet = ".total-price{background:hsl(76,100%,50%)!important;color:hsl(0,0%,9%)!important;padding:1px 4px;margin-left:5px;font-size:20px!important;font-weight:400!important;}.s-item__detail{overflow:visible!important;}";
 
 appendStyle({style: stylesheet});
 processMethod({
@@ -368,7 +390,7 @@ processMethod({
       listItemsSelector: '#mainContent',
       itemPriceElementSelector: 'span[itemprop="price"]',
       convertPriceElementSelector: '#prcIsumConv',
-      itemShippingElementSelector: '#fshippingCost',
+      itemShippingElementSelector: 'div[class*="shipping"]',
       convertShippingElementSelector: '#convetedPriceId',
       itemPriceElementTemplate: globals.itemPriceElementTemplate
     })
